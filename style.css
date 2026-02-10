@@ -1,0 +1,25 @@
+/* Custom smooth scaling for the calculator */
+body {
+    background-image: radial-gradient(circle at 10% 20%, rgb(239, 246, 255) 0%, rgb(219, 228, 241) 100%);
+}
+
+.custom-input::-webkit-outer-spin-button,
+.custom-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+#calculateBtn {
+    box-shadow: 0 10px 25px -5px rgba(79, 70, 229, 0.4);
+}
+
+#calculateBtn:hover {
+    box-shadow: 0 20px 30px -10px rgba(79, 70, 229, 0.6);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .max-w-5xl {
+        margin: 1rem;
+    }
+}

@@ -1,63 +1,56 @@
 $(document).ready(function () {
-    // 1. Initialize Default Date (Current Month)
+    // 1. Initialize Default Date
     const today = new Date();
-    const formattedMonth = today.toISOString().substring(0, 7);
-    $('#monthInput').val(formattedMonth);
+    $('#monthInput').val(today.toISOString().substring(0, 7));
 
     // 2. Calculation Logic
     $('#calculateBtn').on('click', function () {
         const dateValue = $('#monthInput').val();
         const baseSalary = parseFloat($('#baseSalary').val()) || 0;
-        const paidLeaves = parseInt($('#paidLeaves').val()) || 0;
-        const unpaidLeaves = parseInt($('#unpaidLeaves').val()) || 0;
+        const totalLeavesTaken = parseInt($('#totalLeaves').val()) || 0;
         const publicHolidays = parseInt($('#holidays').val()) || 0;
 
         if (!dateValue) {
-            alert("Please select a month first!");
+            alert("Please select a month!");
             return;
         }
 
         const [year, month] = dateValue.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        let offDays = 0;
-        let saturdaysFound = 0;
+        // Standard Payroll Logic: Daily Rate = Base / Total Days in Month
+        const dailyRate = baseSalary / daysInMonth;
 
-        // Loop through every day of the month
+        // Apply 1 Paid Leave Rule
+        // If they took 0 leaves, they get full pay.
+        // If they took 3 leaves, 1 is paid, 2 are unpaid (Loss of Pay).
+        const paidLeaveCredit = 1;
+        let unpaidDays = 0;
+
+        if (totalLeavesTaken > paidLeaveCredit) {
+            unpaidDays = totalLeavesTaken - paidLeaveCredit;
+        }
+
+        const totalDeduction = unpaidDays * dailyRate;
+        const finalPayout = baseSalary - totalDeduction;
+
+        // Calculate Work Days for the report display
+        let offDaysCount = 0;
+        let saturdaysFound = 0;
         for (let d = 1; d <= daysInMonth; d++) {
             const dateObj = new Date(year, month - 1, d);
-            const dayName = dateObj.getDay(); // 0 = Sun, 6 = Sat
-
-            if (dayName === 0) {
-                // It's a Sunday
-                offDays++;
-            } else if (dayName === 6) {
-                // It's a Saturday
+            const dayOfWeek = dateObj.getDay();
+            if (dayOfWeek === 0) offDaysCount++; // Sundays
+            else if (dayOfWeek === 6) {
                 saturdaysFound++;
-                if (saturdaysFound === 2 || saturdaysFound === 4) {
-                    offDays++;
-                }
+                if (saturdaysFound === 2 || saturdaysFound === 4) offDaysCount++; // 2nd/4th Sat
             }
         }
 
-        // Logic:
-        // Net Working Days = Total Days - (Sundays + 2nd/4th Sat) - Public Holidays
-        const netWorkingDays = daysInMonth - offDays - publicHolidays;
+        const workDays = daysInMonth - offDaysCount - publicHolidays;
 
-        // Payable Days = Net Working Days - Unpaid Leaves
-        // Note: Paid leaves are part of your net working days payout
-        const payableDays = netWorkingDays - unpaidLeaves;
-
-        // Calculate Final Amount
-        // Salary Per Day is based on the Standard working days of that month
-        let finalPayout = 0;
-        if (netWorkingDays > 0) {
-            const perDayRate = baseSalary / netWorkingDays;
-            finalPayout = perDayRate * payableDays;
-        }
-
-        // 3. Update UI with Animation
-        updateUI(daysInMonth, offDays, netWorkingDays, finalPayout);
+        // 3. Update UI
+        updateUI(daysInMonth, offDaysCount, workDays, Math.max(0, finalPayout));
     });
 
     function updateUI(total, off, work, final) {
@@ -65,10 +58,8 @@ $(document).ready(function () {
         $('#resOffDays').text(off);
         $('#resWorkDays').text(work);
 
-        // Animate the number for the final salary
         $({ Counter: 0 }).animate({ Counter: final }, {
-            duration: 800,
-            easing: 'swing',
+            duration: 1000,
             step: function () {
                 $('#finalSalary').text(this.Counter.toLocaleString(undefined, {
                     minimumFractionDigits: 2,

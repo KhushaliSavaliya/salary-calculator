@@ -18,23 +18,28 @@ $(document).ready(function () {
         const [year, month] = dateValue.split('-').map(Number);
         const daysInMonth = new Date(year, month, 0).getDate();
 
-        // Standard Payroll Logic: Daily Rate = Base / Total Days in Month
+        // 1. Calculate Daily Rate
+        // Formula: Base Salary / Total days in that specific month
         const dailyRate = baseSalary / daysInMonth;
 
-        // Apply 1 Paid Leave Rule
-        // If they took 0 leaves, they get full pay.
-        // If they took 3 leaves, 1 is paid, 2 are unpaid (Loss of Pay).
+        let finalPayout = baseSalary;
         const paidLeaveCredit = 1;
-        let unpaidDays = 0;
 
-        if (totalLeavesTaken > paidLeaveCredit) {
-            unpaidDays = totalLeavesTaken - paidLeaveCredit;
+        // 2. Apply Custom Leave Rules
+        if (totalLeavesTaken === 0) {
+            // CASE: No leaves taken -> Add 1 day extra pay (Incentive)
+            finalPayout = baseSalary + dailyRate;
         }
+        else if (totalLeavesTaken > paidLeaveCredit) {
+            // CASE: More than 1 leave -> Deduct unpaid days
+            // Example: 2 leaves taken, 1 is paid, 1 is deducted
+            const unpaidDays = totalLeavesTaken - paidLeaveCredit;
+            const totalDeduction = unpaidDays * dailyRate;
+            finalPayout = baseSalary - totalDeduction;
+        }
+        // CASE: Exactly 1 leave taken -> finalPayout remains exactly baseSalary
 
-        const totalDeduction = unpaidDays * dailyRate;
-        const finalPayout = baseSalary - totalDeduction;
-
-        // Calculate Work Days for the report display
+        // 3. Calculate Work Days for Display
         let offDaysCount = 0;
         let saturdaysFound = 0;
         for (let d = 1; d <= daysInMonth; d++) {
@@ -49,7 +54,7 @@ $(document).ready(function () {
 
         const workDays = daysInMonth - offDaysCount - publicHolidays;
 
-        // 3. Update UI
+        // 4. Update UI
         updateUI(daysInMonth, offDaysCount, workDays, Math.max(0, finalPayout));
     });
 
